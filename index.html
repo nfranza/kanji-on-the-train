@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Reps</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#12141c">
+<style>
+  :root {
+    --bg: #12141c;
+    --bg-raised: #1a1d28;
+    --ink: #edebe4;
+    --ink-dim: #9a9ba6;
+    --line: #2a2d3a;
+    --accent: #5e958a;
+    --accent-bright: #7fc4b6;
+    --amber: #c99a52;
+    --rust: #a86257;
+    --radius: 6px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #app {
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .screen { display: none; flex: 1; flex-direction: column; min-height: 0; }
+  .screen.active { display: flex; }
+
+  /* ---------- Deck list ---------- */
+  header {
+    padding: 20px 20px 12px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  #syncBtn {
+    background: none;
+    border: none;
+    color: var(--ink-dim);
+    font-size: 13px;
+    padding: 6px 4px;
+  }
+  #deckList {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 20px;
+  }
+  .deck-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .deck-row:last-child { border-bottom: none; }
+  .deck-name { font-size: 17px; font-weight: 500; }
+  .deck-sub { font-size: 12.5px; color: var(--ink-dim); margin-top: 3px; }
+  .deck-due {
+    font-size: 20px;
+    font-weight: 650;
+    color: var(--accent-bright);
+    min-width: 34px;
+    text-align: right;
+  }
+  .deck-due.zero { color: var(--ink-dim); font-weight: 500; }
+  .empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--ink-dim);
+    font-size: 14.5px;
+    line-height: 1.6;
+  }
+  #status {
+    padding: 10px 20px;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    min-height: 18px;
+  }
+
+  /* ---------- Review screen ---------- */
+  .review-header {
+    padding: 14px 20px 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  #backBtn {
+    background: none; border: none; color: var(--ink-dim);
+    font-size: 22px; line-height: 1; padding: 4px 8px 4px 0;
+  }
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width .2s ease;
+  }
+  #undoBtn {
+    background: none; border: none; color: var(--ink-dim);
+    font-size: 13px; padding: 4px 0 4px 8px;
+    visibility: hidden;
+  }
+  #undoBtn.visible { visibility: visible; }
+
+  .card-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+  }
+  .card-text {
+    font-size: 24px;
+    line-height: 1.5;
+    font-weight: 500;
+    max-width: 560px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .card-divider {
+    width: 44px;
+    height: 1px;
+    background: var(--line);
+    margin: 22px auto;
+  }
+  .card-back-text {
+    font-size: 19px;
+    line-height: 1.6;
+    color: var(--ink-dim);
+    max-width: 560px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .tap-hint {
+    position: absolute;
+    bottom: 116px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+  }
+
+  .grade-row {
+    display: none;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .grade-row.visible { display: grid; }
+  .grade-btn {
+    border: none;
+    padding: 18px 4px 22px;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: center;
+  }
+  .grade-btn .lbl { font-size: 14.5px; }
+  .grade-btn .sub { font-size: 11px; font-weight: 500; opacity: .75; }
+  .grade-again { background: var(--rust); }
+  .grade-hard  { background: var(--amber); }
+  .grade-good  { background: var(--accent); }
+  .grade-easy  { background: var(--accent-bright); }
+
+  .done-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px;
+    text-align: center;
+  }
+  .done-panel .big { font-size: 19px; font-weight: 600; }
+  .done-panel .small { font-size: 14px; color: var(--ink-dim); }
+  .done-panel button {
+    margin-top: 18px;
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-size: 14.5px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <section id="deckScreen" class="screen active">
+    <header>
+      <h1>Reps</h1>
+      <button id="syncBtn">Sync decks</button>
+    </header>
+    <div id="status"></div>
+    <div id="deckList"></div>
+  </section>
+
+  <section id="reviewScreen" class="screen">
+    <div class="review-header">
+      <button id="backBtn">‹</button>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <button id="undoBtn">Undo</button>
+    </div>
+
+    <div class="card-area" id="cardArea">
+      <div>
+        <div class="card-text" id="cardFront"></div>
+        <div id="backWrap" style="display:none;">
+          <div class="card-divider"></div>
+          <div class="card-back-text" id="cardBack"></div>
+        </div>
+      </div>
+    </div>
+    <div class="tap-hint" id="tapHint">tap card to reveal</div>
+
+    <div class="grade-row" id="gradeRow">
+      <button class="grade-btn grade-again" data-grade="1"><span class="lbl">Again</span><span class="sub" id="ivlAgain"></span></button>
+      <button class="grade-btn grade-hard"  data-grade="2"><span class="lbl">Hard</span><span class="sub" id="ivlHard"></span></button>
+      <button class="grade-btn grade-good"  data-grade="3"><span class="lbl">Good</span><span class="sub" id="ivlGood"></span></button>
+      <button class="grade-btn grade-easy"  data-grade="4"><span class="lbl">Easy</span><span class="sub" id="ivlEasy"></span></button>
+    </div>
+  </section>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fflate/0.8.2/fflate.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
